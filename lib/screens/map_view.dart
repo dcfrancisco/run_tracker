@@ -21,7 +21,21 @@ class _MapViewState extends State<MapView> {
     super.initState();
     _locationService = LocationService();
     _mapController = MapController();
-    _locationService.initialize();
+    _initLocation();
+  }
+
+  Future<void> _initLocation() async {
+    try {
+      await _locationService.initialize();
+    } catch (e) {
+      debugPrint('Location init error: $e');
+    }
+  }
+
+  @override
+  void dispose() {
+    _locationService.dispose();
+    super.dispose();
   }
 
   @override
@@ -37,7 +51,9 @@ class _MapViewState extends State<MapView> {
         // Center map once when location is acquired.
         if (pos != null && !_centeredOnce) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            _mapController.move(pos, 15);
+            if (mounted) {
+              _mapController.move(pos, 15);
+            }
           });
           _centeredOnce = true;
         }
@@ -77,11 +93,5 @@ class _MapViewState extends State<MapView> {
         );
       },
     );
-  }
-
-  @override
-  void dispose() {
-    _locationService.dispose();
-    super.dispose();
   }
 }

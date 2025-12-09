@@ -21,19 +21,30 @@ class LocationService {
   Future<void> initialize() async {
     if (_initialized) return;
 
-    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      // Do not throw; UI can handle null currentPosition.
+    try {
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        _initialized = true;
+        return;
+      }
+    } catch (e) {
+      _initialized = true;
+      return;
     }
 
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-    }
+    LocationPermission permission;
+    try {
+      permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
 
-    if (permission == LocationPermission.deniedForever ||
-        permission == LocationPermission.denied) {
-      // Permissions are not granted; do not start stream.
+      if (permission == LocationPermission.deniedForever ||
+          permission == LocationPermission.denied) {
+        _initialized = true;
+        return;
+      }
+    } catch (e) {
       _initialized = true;
       return;
     }
@@ -43,13 +54,18 @@ class LocationService {
       distanceFilter: 5, // meters; reduce noise
     );
 
-    _sub = Geolocator.getPositionStream(locationSettings: settings).listen((
-      pos,
-    ) {
-      final latLng = LatLng(pos.latitude, pos.longitude);
-      _current = latLng;
-      _controller.add(latLng);
-    });
+    _sub = Geolocator.getPositionStream(locationSettings: settings).listen(
+      (pos) {
+        final latLng = LatLng(pos.latitude, pos.longitude);
+        _current = latLng;
+        if (!_controller.isClosed) {
+          _controller.add(latLng);
+        }
+      },
+      onError: (error) {
+        // Silently handle location stream errors
+      },
+    );
 
     // Also seed with a last known position if available.
     try {

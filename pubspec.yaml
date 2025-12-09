@@ -1,5 +1,5 @@
-name: bottom_sheet_demo
-description: "A new Flutter project."
+name: run_tracker
+description: "A Flutter run tracking app with GPS and map integration."
 
 publish_to: "none" # Remove this line if you wish to publish to pub.dev
 
