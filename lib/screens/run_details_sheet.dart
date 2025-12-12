@@ -1,46 +1,96 @@
 import 'package:flutter/material.dart';
+import '../services/run_tracker_service.dart';
+import '../widgets/drag_handle.dart';
 
-/// Bottom sheet containing run details and stats.
+/// Draggable bottom sheet containing run details and live stats.
 class RunDetailsSheet extends StatelessWidget {
-  const RunDetailsSheet({super.key});
+  final DraggableScrollableController controller;
+  final RunTrackerService runTracker;
+
+  const RunDetailsSheet({
+    super.key,
+    required this.controller,
+    required this.runTracker,
+  });
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        // Drag handle
-        Center(
-          child: Container(
-            width: 45,
-            height: 5,
-            margin: const EdgeInsets.only(bottom: 16),
-            decoration: BoxDecoration(
-              color: colorScheme.onSurface.withOpacity(0.25),
-              borderRadius: BorderRadius.circular(10),
+    return DraggableScrollableSheet(
+      controller: controller,
+      expand: false,
+      initialChildSize: 0.14,
+      minChildSize: 0.14,
+      maxChildSize: 0.45,
+      builder: (context, scrollController) {
+        return Container(
+          margin: const EdgeInsets.only(bottom: 110),
+          decoration: BoxDecoration(
+            color: colorScheme.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 10,
+                offset: const Offset(0, -2),
+              ),
+            ],
+          ),
+          child: SafeArea(
+            top: false,
+            child: SingleChildScrollView(
+              controller: scrollController,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const DragHandle(),
+                  const SizedBox(height: 8),
+
+                  // Live stats summary
+                  StreamBuilder<RunState>(
+                    stream: runTracker.stateStream,
+                    initialData: runTracker.state,
+                    builder: (context, snapshot) {
+                      final elapsed = runTracker.elapsedTime;
+                      final routePoints = runTracker.routePoints;
+
+                      return Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          _SummaryStatTile(
+                            label: 'Distance',
+                            value: '${routePoints.length * 0.005} km',
+                          ),
+                          _SummaryStatTile(
+                            label: 'Time',
+                            value: _formatDuration(elapsed),
+                          ),
+                          _SummaryStatTile(label: 'Pace', value: '0:00 /km'),
+                        ],
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Details list
+                  const _RunDetailsList(),
+                  const SizedBox(height: 16),
+                ],
+              ),
             ),
           ),
-        ),
-
-        // Summary stats row
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: const [
-            _SummaryStatTile(label: 'Distance', value: '0.0 km'),
-            _SummaryStatTile(label: 'Time', value: '00:00:00'),
-            _SummaryStatTile(label: 'Pace', value: '0:00 /km'),
-          ],
-        ),
-        const SizedBox(height: 24),
-
-        // Details list
-        const _RunDetailsList(),
-
-        const SizedBox(height: 16),
-      ],
+        );
+      },
     );
+  }
+
+  String _formatDuration(Duration duration) {
+    final hours = duration.inHours;
+    final minutes = duration.inMinutes % 60;
+    final seconds = duration.inSeconds % 60;
+    return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 }
 
