@@ -14,7 +14,7 @@ class MapView extends StatefulWidget {
 class _MapViewState extends State<MapView> {
   late final LocationService _locationService;
   late final MapController _mapController;
-  bool _centeredOnce = false;
+  bool _autoCenter = true; // Auto-follow user until they interact with map
 
   @override
   void initState() {
@@ -38,6 +38,14 @@ class _MapViewState extends State<MapView> {
     super.dispose();
   }
 
+  /// Re-center map on current position
+  void _recenterOnPosition(LatLng pos) {
+    _mapController.move(pos, _mapController.camera.zoom);
+    setState(() {
+      _autoCenter = true;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -48,46 +56,73 @@ class _MapViewState extends State<MapView> {
       builder: (context, snapshot) {
         final pos = snapshot.data;
 
-        // Center map once when location is acquired.
-        if (pos != null && !_centeredOnce) {
+        // Auto-center map when location updates (if enabled)
+        if (pos != null && _autoCenter) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted) {
-              _mapController.move(pos, 15);
+              _mapController.move(pos, _mapController.camera.zoom);
             }
           });
-          _centeredOnce = true;
         }
 
-        return FlutterMap(
-          mapController: _mapController,
-          options: MapOptions(
-            initialCenter: const LatLng(37.7749, -122.4194),
-            initialZoom: 12,
-          ),
+        return Stack(
           children: [
-            // OpenStreetMap tiles.
-            TileLayer(
-              urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-              subdomains: const ['a', 'b', 'c'],
-              userAgentPackageName: 'run_tracker_demo',
+            FlutterMap(
+              mapController: _mapController,
+              options: MapOptions(
+                initialCenter: const LatLng(37.7749, -122.4194),
+                initialZoom: 15,
+                onPositionChanged: (position, hasGesture) {
+                  // Disable auto-center when user manually moves the map
+                  if (hasGesture && _autoCenter) {
+                    setState(() {
+                      _autoCenter = false;
+                    });
+                  }
+                },
+              ),
+              children: [
+                // OpenStreetMap tiles.
+                TileLayer(
+                  urlTemplate:
+                      'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  subdomains: const ['a', 'b', 'c'],
+                  userAgentPackageName: 'run_tracker_demo',
+                ),
+
+                // Live location marker - always updates regardless of auto-center
+                if (pos != null)
+                  MarkerLayer(
+                    markers: [
+                      Marker(
+                        point: pos,
+                        width: 40,
+                        height: 40,
+                        alignment: Alignment.center,
+                        child: Icon(
+                          Icons.my_location,
+                          color: colorScheme.primary,
+                          size: 28,
+                        ),
+                      ),
+                    ],
+                  ),
+              ],
             ),
 
-            // Live location marker.
-            if (pos != null)
-              MarkerLayer(
-                markers: [
-                  Marker(
-                    point: pos,
-                    width: 40,
-                    height: 40,
-                    alignment: Alignment.center,
-                    child: Icon(
-                      Icons.my_location,
-                      color: colorScheme.primary,
-                      size: 28,
-                    ),
-                  ),
-                ],
+            // Re-center button (only show when auto-center is disabled)
+            if (pos != null && !_autoCenter)
+              Positioned(
+                right: 16,
+                bottom: 100,
+                child: FloatingActionButton(
+                  heroTag: 'recenter',
+                  mini: true,
+                  backgroundColor: colorScheme.surface,
+                  foregroundColor: colorScheme.primary,
+                  onPressed: () => _recenterOnPosition(pos),
+                  child: const Icon(Icons.my_location),
+                ),
               ),
           ],
         );
