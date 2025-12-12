@@ -16,72 +16,67 @@ class BottomControls extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Positioned(
-      bottom: 0,
-      left: 0,
-      right: 0,
-      child: Container(
-        height: 110,
-        decoration: BoxDecoration(
-          color: colorScheme.surface,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 8,
-              offset: const Offset(0, -2),
-            ),
-          ],
-        ),
-        child: SafeArea(
-          top: false,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            child: StreamBuilder<RunState>(
-              stream: runTracker.stateStream,
-              initialData: runTracker.state,
-              builder: (context, snapshot) {
-                final state = snapshot.data ?? RunState.idle;
+    return Container(
+      height: 110,
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          child: StreamBuilder<RunState>(
+            stream: runTracker.stateStream,
+            initialData: runTracker.state,
+            builder: (context, snapshot) {
+              final state = snapshot.data ?? RunState.idle;
 
-                return Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    // Activity mode button (left)
-                    IconButton(
-                      icon: const Icon(Icons.directions_walk),
-                      iconSize: 28,
-                      color: colorScheme.onSurface,
-                      onPressed: state == RunState.idle
-                          ? () {
-                              // TODO: Show activity mode selector
-                            }
-                          : null,
-                    ),
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Activity mode button (left)
+                  IconButton(
+                    icon: const Icon(Icons.directions_walk),
+                    iconSize: 28,
+                    color: colorScheme.onSurface,
+                    onPressed: state == RunState.idle
+                        ? () {
+                            // TODO: Show activity mode selector
+                          }
+                        : null,
+                  ),
 
-                    // Start / Pause FAB (center)
-                    FloatingActionButton.large(
-                      heroTag: 'start_pause_btn',
-                      backgroundColor: _getButtonColor(state),
-                      foregroundColor: Colors.white,
-                      elevation: 4,
-                      onPressed: () => _handleMainButtonPress(state),
-                      child: Icon(_getButtonIcon(state), size: 32),
-                    ),
+                  // Start / Pause FAB (center)
+                  FloatingActionButton.large(
+                    heroTag: 'start_pause_btn',
+                    backgroundColor: _getButtonColor(state),
+                    foregroundColor: Colors.white,
+                    elevation: 4,
+                    onPressed: () => _handleMainButtonPress(state),
+                    child: Icon(_getButtonIcon(state), size: 32),
+                  ),
 
-                    // Add route button (right)
-                    IconButton(
-                      icon: const Icon(Icons.add_road),
-                      iconSize: 28,
-                      color: colorScheme.onSurface,
-                      onPressed: state == RunState.idle
-                          ? () {
-                              // TODO: Show route selector
-                            }
-                          : null,
-                    ),
-                  ],
-                );
-              },
-            ),
+                  // Add route button (right)
+                  IconButton(
+                    icon: const Icon(Icons.add_road),
+                    iconSize: 28,
+                    color: colorScheme.onSurface,
+                    onPressed: state == RunState.idle
+                        ? () {
+                            // TODO: Show route selector
+                          }
+                        : null,
+                  ),
+                ],
+              );
+            },
           ),
         ),
       ),

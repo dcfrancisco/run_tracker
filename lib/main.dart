@@ -88,9 +88,14 @@ class _HomePageState extends State<HomePage> {
           ),
 
           // Fixed bottom controls
-          BottomControls(
-            runTracker: _runTracker,
-            onSheetCollapse: _collapseSheet,
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: BottomControls(
+              runTracker: _runTracker,
+              onSheetCollapse: _collapseSheet,
+            ),
           ),
         ],
       ),
