@@ -2,10 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../services/location_service.dart';
+import '../services/run_tracker_service.dart';
+import '../services/run_persistence_service.dart';
 
 /// Displays the OpenStreetMap with a live location marker.
 class MapView extends StatefulWidget {
-  const MapView({super.key});
+  final RunPersistenceService? persistence;
+
+  const MapView({super.key, this.persistence});
 
   @override
   State<MapView> createState() => _MapViewState();
@@ -13,6 +17,7 @@ class MapView extends StatefulWidget {
 
 class _MapViewState extends State<MapView> {
   late final LocationService _locationService;
+  late final RunTrackerService _runTracker;
   late final MapController _mapController;
   bool _autoCenter = true; // Auto-follow user until they interact with map
 
@@ -20,6 +25,7 @@ class _MapViewState extends State<MapView> {
   void initState() {
     super.initState();
     _locationService = LocationService();
+    _runTracker = RunTrackerService(locationService: _locationService, persistence: widget.persistence);
     _mapController = MapController();
     _initLocation();
   }
@@ -35,6 +41,7 @@ class _MapViewState extends State<MapView> {
   @override
   void dispose() {
     _locationService.dispose();
+    _runTracker.dispose();
     super.dispose();
   }
 
@@ -88,6 +95,23 @@ class _MapViewState extends State<MapView> {
                       'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
                   subdomains: const ['a', 'b', 'c'],
                   userAgentPackageName: 'run_tracker_demo',
+                ),
+
+                // Realtime route polyline (collected by RunTrackerService)
+                ValueListenableBuilder<List<LatLng>>(
+                  valueListenable: _runTracker.routePoints,
+                  builder: (context, points, _) {
+                    if (points.length < 2) return const SizedBox.shrink();
+                    return PolylineLayer(
+                      polylines: [
+                        Polyline(
+                          points: points,
+                          color: colorScheme.primary.withOpacity(0.9),
+                          strokeWidth: 4.0,
+                        ),
+                      ],
+                    );
+                  },
                 ),
 
                 // Live location marker - always updates regardless of auto-center

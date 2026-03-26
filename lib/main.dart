@@ -1,12 +1,22 @@
 import 'package:flutter/material.dart';
-import 'screens/map_view.dart';
 
-void main() {
-  runApp(const BottomSheetDemoApp());
+import 'screens/map_view.dart';
+import 'services/run_persistence_service.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize local persistence (Hive) before running the app.
+  final persistence = RunPersistenceService();
+  await persistence.init();
+
+  runApp(BottomSheetDemoApp(persistence: persistence));
 }
 
 class BottomSheetDemoApp extends StatelessWidget {
-  const BottomSheetDemoApp({super.key});
+  final RunPersistenceService persistence;
+
+  const BottomSheetDemoApp({super.key, required this.persistence});
 
   @override
   Widget build(BuildContext context) {
@@ -14,13 +24,15 @@ class BottomSheetDemoApp extends StatelessWidget {
       title: 'Run Tracker Demo',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.blue),
-      home: const HomePage(),
+      home: HomePage(persistence: persistence),
     );
   }
 }
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  final RunPersistenceService persistence;
+
+  const HomePage({super.key, required this.persistence});
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -31,7 +43,7 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("Run Tracker")),
-      body: const MapView(),
+      body: MapView(persistence: widget.persistence),
     );
   }
 }
