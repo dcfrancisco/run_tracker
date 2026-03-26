@@ -17,7 +17,7 @@ class BottomControls extends StatelessWidget {
       decoration: BoxDecoration(
         color: colorScheme.surface,
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 6)
+          BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 6),
         ],
       ),
       child: Row(
