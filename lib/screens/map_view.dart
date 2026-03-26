@@ -32,6 +32,7 @@ class _MapViewState extends State<MapView> {
       persistence: widget.persistence,
       stepCounter: _stepCounter,
     );
+    _sheetController = DraggableScrollableController();
     _mapController = MapController();
     _initLocation();
   }
@@ -147,6 +148,11 @@ class _MapViewState extends State<MapView> {
                 bottom: 100,
                 child: FloatingActionButton(
                   heroTag: 'recenter',
+                  // Run details sheet (draggable) - must be above the map, below bottom controls
+                  RunDetailsSheet(
+                    controller: _sheetController,
+                    runTracker: _runTracker,
+                  ),
                   mini: true,
                   backgroundColor: colorScheme.surface,
                   foregroundColor: colorScheme.primary,

@@ -1,45 +1,106 @@
 import 'package:flutter/material.dart';
 
+import '../services/run_tracker_service.dart';
+
 /// Bottom sheet containing run details and stats.
-class RunDetailsSheet extends StatelessWidget {
-  const RunDetailsSheet({super.key});
+class RunDetailsSheet extends StatefulWidget {
+  final DraggableScrollableController? controller;
+  final RunTrackerService? runTracker;
+
+  const RunDetailsSheet({super.key, this.controller, this.runTracker});
+
+  @override
+  State<RunDetailsSheet> createState() => _RunDetailsSheetState();
+}
+
+class _RunDetailsSheetState extends State<RunDetailsSheet> {
+  late final DraggableScrollableController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = widget.controller ?? DraggableScrollableController();
+
+    // Auto-collapse when a run starts
+    widget.runTracker?.state.addListener(_onRunStateChanged);
+  }
+
+  @override
+  void dispose() {
+    widget.runTracker?.state.removeListener(_onRunStateChanged);
+    super.dispose();
+  }
+
+  void _onRunStateChanged() {
+    final state = widget.runTracker?.state.value;
+    if (state == RunState.running) {
+      // collapse to initial size
+      _controller.animateTo(
+        0.14,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        // Drag handle
-        Center(
-          child: Container(
-            width: 45,
-            height: 5,
-            margin: const EdgeInsets.only(bottom: 16),
-            decoration: BoxDecoration(
-              color: colorScheme.onSurface.withOpacity(0.25),
-              borderRadius: BorderRadius.circular(10),
+    return DraggableScrollableSheet(
+      controller: _controller,
+      initialChildSize: 0.14,
+      minChildSize: 0.14,
+      maxChildSize: 0.45,
+      builder: (context, scrollController) {
+        return Container(
+          margin: const EdgeInsets.only(bottom: 110),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: colorScheme.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 8),
+            ],
+          ),
+          child: SingleChildScrollView(
+            controller: scrollController,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Drag handle
+                Center(
+                  child: Container(
+                    width: 45,
+                    height: 5,
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: colorScheme.onSurface.withOpacity(0.25),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
+
+                // Summary stats row
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: const [
+                    _SummaryStatTile(label: 'Distance', value: '0.0 km'),
+                    _SummaryStatTile(label: 'Time', value: '00:00:00'),
+                    _SummaryStatTile(label: 'Pace', value: '0:00 /km'),
+                  ],
+                ),
+                const SizedBox(height: 24),
+
+                // Details list
+                const _RunDetailsList(),
+
+                const SizedBox(height: 16),
+              ],
             ),
           ),
-        ),
-
-        // Summary stats row
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: const [
-            _SummaryStatTile(label: 'Distance', value: '0.0 km'),
-            _SummaryStatTile(label: 'Time', value: '00:00:00'),
-            _SummaryStatTile(label: 'Pace', value: '0:00 /km'),
-          ],
-        ),
-        const SizedBox(height: 24),
-
-        // Details list
-        const _RunDetailsList(),
-
-        const SizedBox(height: 16),
-      ],
+        );
+      },
     );
   }
 }
