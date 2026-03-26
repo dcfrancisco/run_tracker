@@ -4,6 +4,7 @@ import 'package:latlong2/latlong.dart';
 import '../services/location_service.dart';
 import '../services/run_tracker_service.dart';
 import '../services/run_persistence_service.dart';
+import '../services/step_counter_service.dart';
 
 /// Displays the OpenStreetMap with a live location marker.
 class MapView extends StatefulWidget {
@@ -18,6 +19,7 @@ class MapView extends StatefulWidget {
 class _MapViewState extends State<MapView> {
   late final LocationService _locationService;
   late final RunTrackerService _runTracker;
+  late final StepCounterService _stepCounter;
   late final MapController _mapController;
   bool _autoCenter = true; // Auto-follow user until they interact with map
 
@@ -25,7 +27,11 @@ class _MapViewState extends State<MapView> {
   void initState() {
     super.initState();
     _locationService = LocationService();
-    _runTracker = RunTrackerService(locationService: _locationService, persistence: widget.persistence);
+    _runTracker = RunTrackerService(
+      locationService: _locationService,
+      persistence: widget.persistence,
+      stepCounter: _stepCounter,
+    );
     _mapController = MapController();
     _initLocation();
   }
@@ -148,6 +154,14 @@ class _MapViewState extends State<MapView> {
                   child: const Icon(Icons.my_location),
                 ),
               ),
+
+            // Bottom controls are fixed and must not move with the sheet
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: BottomControls(runTracker: _runTracker),
+            ),
           ],
         );
       },

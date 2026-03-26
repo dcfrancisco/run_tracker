@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:latlong2/latlong.dart';
+import '../services/step_counter_service.dart';
 
 import '../models/run_record.dart';
 import '../services/location_service.dart';
@@ -15,11 +16,13 @@ enum RunState { idle, running, paused, finished }
 class RunTrackerService {
   final LocationService locationService;
   final RunPersistenceService? persistence;
+  final StepCounterService? stepCounter;
   final double weightKg;
 
   RunTrackerService({
     required this.locationService,
     this.persistence,
+    this.stepCounter,
     this.weightKg = 70.0,
   });
 
@@ -40,6 +43,10 @@ class RunTrackerService {
     state.dispose();
     routePoints.dispose();
     lastRun.dispose();
+    // start step monitoring if available
+    try {
+      stepCounter?.start();
+    } catch (_) {}
   }
 
   Future<void> startRun() async {
@@ -53,11 +60,13 @@ class RunTrackerService {
 
     // subscribe to location updates
     _locSub = locationService.positionStream.listen((pos) {
-      if (pos != null) {
-        final copy = List<LatLng>.from(routePoints.value)..add(pos);
-        routePoints.value = copy;
-      }
-    });
+      final copy = List<LatLng>.from(routePoints.value)..add(pos);
+    // pause step monitoring
+    try {
+      await stepCounter?.stop();
+    } catch (_) {}
+      routePoints.value = copy;
+        });
   }
 
   Future<void> pauseRun() async {
@@ -70,17 +79,19 @@ class RunTrackerService {
 
   Future<void> resumeRun() async {
     if (state.value != RunState.paused) return;
+    // resume step monitoring
+    try {
+      stepCounter?.start();
+    } catch (_) {}
     if (_pauseStart != null) {
       _accumPaused += DateTime.now().difference(_pauseStart!);
       _pauseStart = null;
     }
     state.value = RunState.running;
     _locSub = locationService.positionStream.listen((pos) {
-      if (pos != null) {
-        final copy = List<LatLng>.from(routePoints.value)..add(pos);
-        routePoints.value = copy;
-      }
-    });
+      final copy = List<LatLng>.from(routePoints.value)..add(pos);
+      routePoints.value = copy;
+        });
   }
 
   Future<void> stopRun() async {
@@ -94,7 +105,7 @@ class RunTrackerService {
     final distanceKm = RunMetrics.calculateDistanceKm(routePoints.value);
     final pace = RunMetrics.calculatePaceMinPerKm(duration, distanceKm);
     final speed = RunMetrics.calculateSpeedKmh(duration, distanceKm);
-    final calories = RunMetrics.calculateCalories(weightKg, distanceKm);
+      steps: steps,
 
     final record = RunRecord(
       points: routePoints.value,
