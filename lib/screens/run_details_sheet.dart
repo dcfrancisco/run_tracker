@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../services/run_tracker_service.dart';
@@ -20,14 +22,17 @@ class _RunDetailsSheetState extends State<RunDetailsSheet> {
   void initState() {
     super.initState();
     _controller = widget.controller ?? DraggableScrollableController();
-
     // Auto-collapse when a run starts
     widget.runTracker?.state.addListener(_onRunStateChanged);
+    // Add controller listener for snapping
+    _controller.addListener(_onSheetSizeChanged);
   }
 
   @override
   void dispose() {
     widget.runTracker?.state.removeListener(_onRunStateChanged);
+    _controller.removeListener(_onSheetSizeChanged);
+    _snapTimer?.cancel();
     super.dispose();
   }
 
@@ -41,6 +46,28 @@ class _RunDetailsSheetState extends State<RunDetailsSheet> {
         curve: Curves.easeOut,
       );
     }
+  }
+
+  Timer? _snapTimer;
+  void _onSheetSizeChanged() {
+    _snapTimer?.cancel();
+    _snapTimer = Timer(const Duration(milliseconds: 200), () {
+      final size = _controller.size;
+      final mid = (0.14 + 0.45) / 2;
+      if (size >= mid) {
+        _controller.animateTo(
+          0.45,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOut,
+        );
+      } else {
+        _controller.animateTo(
+          0.14,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOut,
+        );
+      }
+    });
   }
 
   @override
@@ -81,15 +108,8 @@ class _RunDetailsSheetState extends State<RunDetailsSheet> {
                   ),
                 ),
 
-                // Summary stats row
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: const [
-                    _SummaryStatTile(label: 'Distance', value: '0.0 km'),
-                    _SummaryStatTile(label: 'Time', value: '00:00:00'),
-                    _SummaryStatTile(label: 'Pace', value: '0:00 /km'),
-                  ],
-                ),
+                // Summary stats row (live values)
+                _LiveSummary(runTracker: widget.runTracker),
                 const SizedBox(height: 24),
 
                 // Details list
@@ -188,6 +208,72 @@ class _DetailRow extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _LiveSummary extends StatefulWidget {
+  final RunTrackerService? runTracker;
+  const _LiveSummary({this.runTracker});
+
+  @override
+  State<_LiveSummary> createState() => _LiveSummaryState();
+}
+
+class _LiveSummaryState extends State<_LiveSummary> {
+  Timer? _ticker;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.runTracker?.routePoints.addListener(_onDataChanged);
+    widget.runTracker?.state.addListener(_onDataChanged);
+    widget.runTracker?.stepCounter?.stepCount.addListener(_onDataChanged);
+    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  void _onDataChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    widget.runTracker?.routePoints.removeListener(_onDataChanged);
+    widget.runTracker?.state.removeListener(_onDataChanged);
+    widget.runTracker?.stepCounter?.stepCount.removeListener(_onDataChanged);
+    _ticker?.cancel();
+    super.dispose();
+  }
+
+  String _formatDuration(Duration d) {
+    final h = d.inHours.toString().padLeft(2, '0');
+    final m = (d.inMinutes % 60).toString().padLeft(2, '0');
+    final s = (d.inSeconds % 60).toString().padLeft(2, '0');
+    return '$h:$m:$s';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final rt = widget.runTracker;
+    final distance = rt?.currentDistanceKm ?? 0.0;
+    final duration = rt?.getActiveDuration() ?? Duration.zero;
+    final pace = rt?.currentPaceMinPerKm ?? 0.0;
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceAround,
+      children: [
+        _SummaryStatTile(
+          label: 'Distance',
+          value: '${distance.toStringAsFixed(2)} km',
+        ),
+        _SummaryStatTile(label: 'Time', value: _formatDuration(duration)),
+        _SummaryStatTile(
+          label: 'Pace',
+          value: pace > 0 ? '${pace.toStringAsFixed(2)} min/km' : '—',
+        ),
+      ],
     );
   }
 }
