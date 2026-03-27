@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:run_tracker/l10n/app_localizations.dart';
 
 import '../services/run_tracker_service.dart';
 
@@ -113,7 +115,7 @@ class _RunDetailsSheetState extends State<RunDetailsSheet> {
                 const SizedBox(height: 24),
 
                 // Details list
-                const _RunDetailsList(),
+                _RunDetailsList(runTracker: widget.runTracker),
 
                 const SizedBox(height: 16),
               ],
@@ -155,16 +157,54 @@ class _SummaryStatTile extends StatelessWidget {
 }
 
 /// Details list showing extended run metrics.
-class _RunDetailsList extends StatelessWidget {
-  const _RunDetailsList();
+class _RunDetailsList extends StatefulWidget {
+  final RunTrackerService? runTracker;
+  const _RunDetailsList({this.runTracker});
+
+  @override
+  State<_RunDetailsList> createState() => _RunDetailsListState();
+}
+
+class _RunDetailsListState extends State<_RunDetailsList> {
+  void _onDataChanged() => setState(() {});
+
+  @override
+  void initState() {
+    super.initState();
+    widget.runTracker?.routePoints.addListener(_onDataChanged);
+    widget.runTracker?.state.addListener(_onDataChanged);
+    widget.runTracker?.stepCounter?.stepCount.addListener(_onDataChanged);
+  }
+
+  @override
+  void dispose() {
+    widget.runTracker?.routePoints.removeListener(_onDataChanged);
+    widget.runTracker?.state.removeListener(_onDataChanged);
+    widget.runTracker?.stepCounter?.stepCount.removeListener(_onDataChanged);
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    const items = [
-      _DetailRow(title: 'Speed', value: '0.0 km/h'),
-      _DetailRow(title: 'Elevation', value: '0 m'),
-      _DetailRow(title: 'Calories', value: '0 kcal'),
-      _DetailRow(title: 'Steps', value: '0'),
+    final rt = widget.runTracker;
+    final locale = Localizations.localeOf(context).toString();
+    final nf = NumberFormat.decimalPattern(locale);
+
+    final speed = rt?.currentSpeedKmh ?? 0.0;
+    final calories = rt?.currentCalories ?? 0.0;
+    final steps = rt?.stepCounter?.stepCount.value ?? 0;
+    final loc = AppLocalizations.of(context);
+
+    final items = [
+      _DetailRow(
+        title: loc?.speed ?? 'Speed',
+        value: '${nf.format(speed)} ${loc?.kmPerHour ?? 'km/h'}',
+      ),
+      _DetailRow(
+        title: loc?.calories ?? 'Calories',
+        value: '${nf.format(calories)} ${loc?.kcal ?? 'kcal'}',
+      ),
+      _DetailRow(title: loc?.steps ?? 'Steps', value: nf.format(steps)),
     ];
 
     return Column(
@@ -254,24 +294,41 @@ class _LiveSummaryState extends State<_LiveSummary> {
     return '$h:$m:$s';
   }
 
+  String _formatPace(double minPerKm) {
+    if (minPerKm <= 0 || minPerKm.isNaN || minPerKm.isInfinite) return '—';
+    final totalSeconds = (minPerKm * 60).round();
+    final minutes = (totalSeconds ~/ 60).toString().padLeft(2, '0');
+    final seconds = (totalSeconds % 60).toString().padLeft(2, '0');
+    return '$minutes:$seconds';
+  }
+
   @override
   Widget build(BuildContext context) {
     final rt = widget.runTracker;
     final distance = rt?.currentDistanceKm ?? 0.0;
     final duration = rt?.getActiveDuration() ?? Duration.zero;
     final pace = rt?.currentPaceMinPerKm ?? 0.0;
+    final locale = Localizations.localeOf(context).toString();
+    final nf = NumberFormat.decimalPattern(locale);
+
+    final loc = AppLocalizations.of(context);
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceAround,
       children: [
         _SummaryStatTile(
-          label: 'Distance',
-          value: '${distance.toStringAsFixed(2)} km',
+          label: loc?.distance ?? 'Distance',
+          value: '${nf.format(distance)} ${loc?.kmPerHour == null ? 'km' : ''}',
         ),
-        _SummaryStatTile(label: 'Time', value: _formatDuration(duration)),
         _SummaryStatTile(
-          label: 'Pace',
-          value: pace > 0 ? '${pace.toStringAsFixed(2)} min/km' : '—',
+          label: loc?.time ?? 'Time',
+          value: _formatDuration(duration),
+        ),
+        _SummaryStatTile(
+          label: loc?.pace ?? 'Pace',
+          value: pace > 0
+              ? '${_formatPace(pace)} ${loc?.minPerKm ?? 'min/km'}'
+              : '—',
         ),
       ],
     );

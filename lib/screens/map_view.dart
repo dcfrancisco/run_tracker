@@ -5,6 +5,8 @@ import '../services/location_service.dart';
 import '../services/run_tracker_service.dart';
 import '../services/run_persistence_service.dart';
 import '../services/step_counter_service.dart';
+import 'run_details_sheet.dart';
+import '../widgets/bottom_controls.dart';
 
 /// Displays the OpenStreetMap with a live location marker.
 class MapView extends StatefulWidget {
@@ -20,6 +22,7 @@ class _MapViewState extends State<MapView> {
   late final LocationService _locationService;
   late final RunTrackerService _runTracker;
   late final StepCounterService _stepCounter;
+  late final DraggableScrollableController _sheetController;
   late final MapController _mapController;
   bool _autoCenter = true; // Auto-follow user until they interact with map
 
@@ -27,12 +30,13 @@ class _MapViewState extends State<MapView> {
   void initState() {
     super.initState();
     _locationService = LocationService();
+    _stepCounter = StepCounterService();
+    _sheetController = DraggableScrollableController();
     _runTracker = RunTrackerService(
       locationService: _locationService,
       persistence: widget.persistence,
       stepCounter: _stepCounter,
     );
-    _sheetController = DraggableScrollableController();
     _mapController = MapController();
     _initLocation();
   }
@@ -148,11 +152,6 @@ class _MapViewState extends State<MapView> {
                 bottom: 100,
                 child: FloatingActionButton(
                   heroTag: 'recenter',
-                  // Run details sheet (draggable) - must be above the map, below bottom controls
-                  RunDetailsSheet(
-                    controller: _sheetController,
-                    runTracker: _runTracker,
-                  ),
                   mini: true,
                   backgroundColor: colorScheme.surface,
                   foregroundColor: colorScheme.primary,
@@ -160,6 +159,12 @@ class _MapViewState extends State<MapView> {
                   child: const Icon(Icons.my_location),
                 ),
               ),
+
+            // Run details sheet (draggable) - must be above the map, below bottom controls
+            RunDetailsSheet(
+              controller: _sheetController,
+              runTracker: _runTracker,
+            ),
 
             // Bottom controls are fixed and must not move with the sheet
             Positioned(

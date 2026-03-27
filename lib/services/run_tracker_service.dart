@@ -58,15 +58,16 @@ class RunTrackerService {
     _endTime = null;
     state.value = RunState.running;
 
+    // start step monitoring if available
+    try {
+      stepCounter?.start();
+    } catch (_) {}
+
     // subscribe to location updates
     _locSub = locationService.positionStream.listen((pos) {
       final copy = List<LatLng>.from(routePoints.value)..add(pos);
-    // pause step monitoring
-    try {
-      await stepCounter?.stop();
-    } catch (_) {}
       routePoints.value = copy;
-        });
+    });
   }
 
   Future<void> pauseRun() async {
@@ -91,7 +92,7 @@ class RunTrackerService {
     _locSub = locationService.positionStream.listen((pos) {
       final copy = List<LatLng>.from(routePoints.value)..add(pos);
       routePoints.value = copy;
-        });
+    });
   }
 
   Future<void> stopRun() async {
@@ -105,7 +106,13 @@ class RunTrackerService {
     final distanceKm = RunMetrics.calculateDistanceKm(routePoints.value);
     final pace = RunMetrics.calculatePaceMinPerKm(duration, distanceKm);
     final speed = RunMetrics.calculateSpeedKmh(duration, distanceKm);
-      steps: steps,
+    final calories = RunMetrics.calculateCalories(weightKg, distanceKm);
+    final steps = stepCounter?.stepCount.value ?? 0;
+
+    // stop step monitoring
+    try {
+      stepCounter?.stop();
+    } catch (_) {}
 
     final record = RunRecord(
       points: routePoints.value,
@@ -113,7 +120,7 @@ class RunTrackerService {
       pace: pace,
       speed: speed,
       calories: calories,
-      steps: 0,
+      steps: steps,
       date: _startTime ?? DateTime.now(),
     );
 
@@ -133,4 +140,26 @@ class RunTrackerService {
     final raw = end.difference(_startTime!);
     return raw - _accumPaused;
   }
+
+  /// Public accessor for the currently active duration (excluding pauses).
+  Duration getActiveDuration() => _computeActiveDuration();
+
+  /// Current accumulated distance in kilometers.
+  double get currentDistanceKm =>
+      RunMetrics.calculateDistanceKm(routePoints.value);
+
+  /// Current pace in minutes per km.
+  double get currentPaceMinPerKm =>
+      RunMetrics.calculatePaceMinPerKm(getActiveDuration(), currentDistanceKm);
+
+  /// Current speed in km/h.
+  double get currentSpeedKmh =>
+      RunMetrics.calculateSpeedKmh(getActiveDuration(), currentDistanceKm);
+
+  /// Current calories estimate based on `weightKg`.
+  double get currentCalories =>
+      RunMetrics.calculateCalories(weightKg, currentDistanceKm);
+
+  /// Current step count (if stepCounter provided).
+  int get currentSteps => stepCounter?.stepCount.value ?? 0;
 }

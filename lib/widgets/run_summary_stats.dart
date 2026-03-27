@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:run_tracker/l10n/app_localizations.dart';
 
 /// Top-level run stats display (Distance, Time, Pace).
 class RunSummaryStats extends StatelessWidget {
@@ -15,15 +17,19 @@ class RunSummaryStats extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final locale = Localizations.localeOf(context).toString();
+    final nf = NumberFormat.decimalPattern(locale);
+    final loc = AppLocalizations.of(context);
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceAround,
       children: [
         _StatTile(
-          label: 'Distance',
-          value: '${distanceKm.toStringAsFixed(2)} km',
+          label: loc?.distance ?? 'Distance',
+          value: '${nf.format(distanceKm)} km',
         ),
-        _StatTile(label: 'Time', value: formattedTime),
-        _StatTile(label: 'Pace', value: formattedPace),
+        _StatTile(label: loc?.time ?? 'Time', value: formattedTime),
+        _StatTile(label: loc?.pace ?? 'Pace', value: formattedPace),
       ],
     );
   }

@@ -1,0 +1,15 @@
+{
+  "@@locale": "en",
+  "appTitle": "Run Tracker Demo",
+  "runTrackerTitle": "Run Tracker",
+  "distance": "Distance",
+  "time": "Time",
+  "pace": "Pace",
+  "speed": "Speed",
+  "calories": "Calories",
+  "steps": "Steps",
+  "elevation": "Elevation",
+  "kmPerHour": "km/h",
+  "minPerKm": "min/km",
+  "kcal": "kcal"
+}

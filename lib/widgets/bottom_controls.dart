@@ -34,7 +34,6 @@ class BottomControls extends StatelessWidget {
             valueListenable: runTracker.state,
             builder: (context, state, _) {
               final isRunning = state == RunState.running;
-              final isPaused = state == RunState.paused;
               return FloatingActionButton.large(
                 heroTag: 'start_pause',
                 backgroundColor: Colors.deepOrange,

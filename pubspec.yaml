@@ -16,9 +16,12 @@ dependencies:
   flutter_map: ^7.0.2
   latlong2: ^0.9.1
   geolocator: ^10.1.0
+  flutter_localizations:
+    sdk: flutter
   hive: ^2.2.3
   hive_flutter: ^1.1.0
   pedometer: ^4.2.0
+  intl: ^0.20.2
 
 dev_dependencies:
   flutter_test:
@@ -28,3 +31,4 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  generate: true
