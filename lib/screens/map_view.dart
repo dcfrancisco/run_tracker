@@ -149,7 +149,7 @@ class _MapViewState extends State<MapView> {
             if (pos != null && !_autoCenter)
               Positioned(
                 right: 16,
-                bottom: 100,
+                bottom: 103,
                 child: FloatingActionButton(
                   heroTag: 'recenter',
                   mini: true,
