@@ -24,8 +24,8 @@
 ## Data & Persistence
 
 - [ ] Save run records (Hive)
-- [ ] Optional Firebase sync
 - [ ] Export GPX/CSV
+- [ ] Optional Firebase sync
 
 ## Advanced
 
