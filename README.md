@@ -1,6 +1,7 @@
+
 # 🏃 Run Tracker
 
-A Flutter-based run tracking app with real-time GPS tracking and interactive map visualization, similar to Strava and Nike Run Club.
+A Strava/Nike Run Club–style Flutter app for run tracking, real-time GPS, and interactive map visualization.
 
 ## ✨ Features
 
@@ -10,18 +11,38 @@ A Flutter-based run tracking app with real-time GPS tracking and interactive map
 - 🔄 **Re-center Button** - Quick button to jump back to your current location
 - 📱 **Material 3 Design** - Modern UI with dynamic theming
 
+
 ## 🏗️ Architecture
 
-Built following **Clean Architecture** principles:
+Follows a strict 3-layer Stack UI:
+
+1. Full-screen map (`flutter_map`)
+2. Draggable stats sheet (`DraggableScrollableSheet`)
+3. Fixed bottom controls (buttons)
+
+**Project structure:**
 
 ```
 lib/
-├── main.dart              # App entry point
-├── models/                # Data models (RunRecord, etc.)
-├── screens/               # UI screens (MapView, etc.)
-├── services/              # Business logic (LocationService)
-└── widgets/               # Reusable UI components
+ ├─ main.dart
+ ├─ screens/
+ │   ├─ map_view.dart
+ │   ├─ run_details_sheet.dart
+ ├─ widgets/
+ │   ├─ bottom_controls.dart
+ │   ├─ drag_handle.dart
+ │   ├─ run_summary_stats.dart
+ ├─ services/
+ │   ├─ location_service.dart
+ │   ├─ run_tracker_service.dart
+ │   ├─ step_counter_service.dart
+ ├─ models/
+ │   ├─ run_record.dart
+ └─ utils/
+	 ├─ run_metrics.dart
 ```
+
+See [ROADMAP.md](ROADMAP.md) and [.github/copilot-instructions.md](.github/copilot-instructions.md) for implementation phases and coding rules.
 
 ## 🚀 Getting Started
 
@@ -95,15 +116,10 @@ flutter analyze
 dart format lib
 ```
 
+
 ## 🗺️ Roadmap
 
-- [ ] Start/Stop run tracking with polyline routes
-- [ ] Step counter (pedometer integration)
-- [ ] Speed, pace, distance calculations
-- [ ] Calorie tracking
-- [ ] Run history with local storage (Hive/Firebase)
-- [ ] Auto-collapsing bottom sheet (inDrive-style)
-- [ ] Run statistics and summaries
+See [ROADMAP.md](ROADMAP.md) for detailed phases and features.
 
 ## 📄 License
 
