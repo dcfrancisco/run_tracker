@@ -1,16 +1,11 @@
 import 'package:flutter/material.dart';
 import '../services/run_tracker_service.dart';
 
-/// Fixed bottom control bar with activity mode, start/pause, and add route buttons.
+/// Fixed bottom controls bar anchored at the bottom of the screen.
 class BottomControls extends StatelessWidget {
   final RunTrackerService runTracker;
-  final VoidCallback? onSheetCollapse;
 
-  const BottomControls({
-    super.key,
-    required this.runTracker,
-    this.onSheetCollapse,
-  });
+  const BottomControls({super.key, required this.runTracker});
 
   @override
   Widget build(BuildContext context) {
@@ -18,107 +13,65 @@ class BottomControls extends StatelessWidget {
 
     return Container(
       height: 110,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
         color: colorScheme.surface,
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 8,
-            offset: const Offset(0, -2),
+          BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 6),
+        ],
+      ),
+      child: Row(
+        children: [
+          // Left spacer with activity button
+          SizedBox(
+            width: 64,
+            child: IconButton(
+              onPressed: () {},
+              icon: Icon(Icons.directions_run, color: colorScheme.primary),
+            ),
+          ),
+
+          // Center area: expanded and centered FAB (smaller)
+          Expanded(
+            child: Center(
+              child: ValueListenableBuilder<RunState>(
+                valueListenable: runTracker.state,
+                builder: (context, state, _) {
+                  final isRunning = state == RunState.running;
+                  return FloatingActionButton.small(
+                    heroTag: 'start_pause',
+                    backgroundColor: Colors.deepOrange,
+                    onPressed: () async {
+                      if (state == RunState.idle ||
+                          state == RunState.finished) {
+                        await runTracker.startRun();
+                      } else if (state == RunState.running) {
+                        await runTracker.pauseRun();
+                      } else if (state == RunState.paused) {
+                        await runTracker.resumeRun();
+                      }
+                    },
+                    child: Icon(
+                      isRunning ? Icons.pause : Icons.play_arrow,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+
+          // Right spacer with add route button
+          SizedBox(
+            width: 64,
+            child: IconButton(
+              onPressed: () {},
+              icon: Icon(Icons.add_road, color: colorScheme.primary),
+            ),
           ),
         ],
       ),
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          child: StreamBuilder<RunState>(
-            stream: runTracker.stateStream,
-            initialData: runTracker.state,
-            builder: (context, snapshot) {
-              final state = snapshot.data ?? RunState.idle;
-
-              return Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  // Activity mode button (left)
-                  IconButton(
-                    icon: const Icon(Icons.directions_walk),
-                    iconSize: 28,
-                    color: colorScheme.onSurface,
-                    onPressed: state == RunState.idle
-                        ? () {
-                            // TODO: Show activity mode selector
-                          }
-                        : null,
-                  ),
-
-                  // Start / Pause FAB (center)
-                  FloatingActionButton.large(
-                    heroTag: 'start_pause_btn',
-                    backgroundColor: _getButtonColor(state),
-                    foregroundColor: Colors.white,
-                    elevation: 4,
-                    onPressed: () => _handleMainButtonPress(state),
-                    child: Icon(_getButtonIcon(state), size: 32),
-                  ),
-
-                  // Add route button (right)
-                  IconButton(
-                    icon: const Icon(Icons.add_road),
-                    iconSize: 28,
-                    color: colorScheme.onSurface,
-                    onPressed: state == RunState.idle
-                        ? () {
-                            // TODO: Show route selector
-                          }
-                        : null,
-                  ),
-                ],
-              );
-            },
-          ),
-        ),
-      ),
     );
-  }
-
-  void _handleMainButtonPress(RunState state) {
-    switch (state) {
-      case RunState.idle:
-      case RunState.finished:
-        runTracker.startRun();
-        onSheetCollapse?.call();
-        break;
-      case RunState.running:
-        runTracker.pauseRun();
-        break;
-      case RunState.paused:
-        runTracker.resumeRun();
-        break;
-    }
-  }
-
-  IconData _getButtonIcon(RunState state) {
-    switch (state) {
-      case RunState.idle:
-      case RunState.finished:
-        return Icons.play_arrow;
-      case RunState.running:
-        return Icons.pause;
-      case RunState.paused:
-        return Icons.play_arrow;
-    }
-  }
-
-  Color _getButtonColor(RunState state) {
-    switch (state) {
-      case RunState.idle:
-      case RunState.finished:
-      case RunState.paused:
-        return Colors.orange;
-      case RunState.running:
-        return Colors.red;
-    }
   }
 }

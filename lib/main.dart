@@ -1,104 +1,63 @@
 import 'package:flutter/material.dart';
-import 'screens/map_view.dart';
-import 'screens/run_details_sheet.dart';
-import 'services/location_service.dart';
-import 'services/run_tracker_service.dart';
-import 'widgets/bottom_controls.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:run_tracker/l10n/app_localizations.dart';
 
-void main() {
-  runApp(const BottomSheetDemoApp());
+import 'screens/map_view.dart';
+import 'services/run_persistence_service.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize local persistence (Hive) before running the app.
+  final persistence = RunPersistenceService();
+  await persistence.init();
+
+  runApp(BottomSheetDemoApp(persistence: persistence));
 }
 
 class BottomSheetDemoApp extends StatelessWidget {
-  const BottomSheetDemoApp({super.key});
+  final RunPersistenceService persistence;
+
+  const BottomSheetDemoApp({super.key, required this.persistence});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Run Tracker',
+      onGenerateTitle: (context) =>
+          AppLocalizations.of(context)?.appTitle ?? 'Run Tracker Demo',
       debugShowCheckedModeBanner: false,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: AppLocalizations.supportedLocales,
       theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.blue),
-      home: const HomePage(),
+      home: HomePage(persistence: persistence),
     );
   }
 }
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  final RunPersistenceService persistence;
+
+  const HomePage({super.key, required this.persistence});
 
   @override
   State<HomePage> createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
-  late final LocationService _locationService;
-  late final RunTrackerService _runTracker;
-  late final DraggableScrollableController _sheetController;
-
-  @override
-  void initState() {
-    super.initState();
-    _locationService = LocationService();
-    _runTracker = RunTrackerService();
-    _sheetController = DraggableScrollableController();
-
-    // Wire up location updates to route tracking
-    _locationService.positionStream.listen((position) {
-      if (_runTracker.isRunning) {
-        _runTracker.addRoutePoint(position);
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _locationService.dispose();
-    _runTracker.dispose();
-    _sheetController.dispose();
-    super.dispose();
-  }
-
-  void _collapseSheet() {
-    if (_sheetController.isAttached) {
-      _sheetController.animateTo(
-        0.14,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOut,
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
-        children: [
-          // Full-screen map
-          Positioned.fill(
-            child: MapView(
-              locationService: _locationService,
-              runTracker: _runTracker,
-            ),
-          ),
-
-          // Draggable stats sheet
-          RunDetailsSheet(
-            controller: _sheetController,
-            runTracker: _runTracker,
-          ),
-
-          // Fixed bottom controls
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: BottomControls(
-              runTracker: _runTracker,
-              onSheetCollapse: _collapseSheet,
-            ),
-          ),
-        ],
+      appBar: AppBar(
+        title: Text(
+          AppLocalizations.of(context)?.runTrackerTitle ?? 'Run Tracker',
+        ),
       ),
+      body: MapView(persistence: widget.persistence),
     );
   }
 }
