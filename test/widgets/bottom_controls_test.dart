@@ -88,12 +88,12 @@ void main() {
     ) async {
       await tester.pumpWidget(createTestWidget());
 
-      expect(runTracker.state, RunState.idle);
+      expect(runTracker.state.value, RunState.idle);
 
       await tester.tap(find.byType(FloatingActionButton));
       await tester.pump();
 
-      expect(runTracker.state, RunState.running);
+      expect(runTracker.state.value, RunState.running);
     });
 
     testWidgets('should pause run when FAB is tapped while running', (
@@ -104,12 +104,12 @@ void main() {
       runTracker.startRun();
       await tester.pump();
 
-      expect(runTracker.state, RunState.running);
+      expect(runTracker.state.value, RunState.running);
 
       await tester.tap(find.byType(FloatingActionButton));
       await tester.pump();
 
-      expect(runTracker.state, RunState.paused);
+      expect(runTracker.state.value, RunState.paused);
     });
 
     testWidgets('should resume run when FAB is tapped while paused', (
@@ -121,12 +121,12 @@ void main() {
       runTracker.pauseRun();
       await tester.pump();
 
-      expect(runTracker.state, RunState.paused);
+      expect(runTracker.state.value, RunState.paused);
 
       await tester.tap(find.byType(FloatingActionButton));
       await tester.pump();
 
-      expect(runTracker.state, RunState.running);
+      expect(runTracker.state.value, RunState.running);
     });
 
     testWidgets('should call onSheetCollapse when starting run', (
@@ -178,7 +178,7 @@ void main() {
       await tester.pump();
 
       // State should remain running
-      expect(runTracker.state, RunState.running);
+      expect(runTracker.state.value, RunState.running);
     });
 
     testWidgets('should enable side buttons when idle', (tester) async {
@@ -259,16 +259,14 @@ void main() {
       expect(find.byIcon(Icons.pause), findsNothing);
     });
 
-
-
     testWidgets('should handle finished state like idle', (tester) async {
       await tester.pumpWidget(createTestWidget());
 
-      runTracker.startRun();
-      runTracker.stopRun();
+      await runTracker.startRun();
+      await runTracker.stopRun();
       await tester.pump();
 
-      expect(runTracker.state, RunState.finished);
+      expect(runTracker.state.value, RunState.finished);
 
       // Should show play icon
       expect(find.byIcon(Icons.play_arrow), findsOneWidget);
@@ -277,7 +275,7 @@ void main() {
       await tester.tap(find.byType(FloatingActionButton));
       await tester.pump();
 
-      expect(runTracker.state, RunState.running);
+      expect(runTracker.state.value, RunState.running);
     });
   });
 }
