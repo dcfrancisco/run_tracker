@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="ChatGPT" xmlns="http://www.topografix.com/GPX/1/1">
+  <metadata>
+    <name>Least Climb Route - Sta Lucia to Cybergate</name>
+  </metadata>
+
+  <trk>
+    <name>Least Climb Bike Route</name>
+    <trkseg>
+
+      <!-- Start: Sta Lucia -->
+      <trkpt lat="14.5845" lon="121.0857"><name>Sta Lucia Start</name></trkpt>
+
+      <!-- East Bank Road (Floodway - flat) -->
+      <trkpt lat="14.5800" lon="121.0850"/>
+      <trkpt lat="14.5700" lon="121.0835"/>
+      <trkpt lat="14.5600" lon="121.0820"/>
+      <trkpt lat="14.5500" lon="121.0805"/>
+      <trkpt lat="14.5400" lon="121.0790"/>
+
+      <!-- Transition to Pasig Blvd -->
+      <trkpt lat="14.5300" lon="121.0775"/>
+      <trkpt lat="14.5250" lon="121.0730"/>
+
+      <!-- Pasig Blvd (westbound) -->
+      <trkpt lat="14.5200" lon="121.0680"/>
+      <trkpt lat="14.5200" lon="121.0600"/>
+      <trkpt lat="14.5200" lon="121.0500"/>
+
+      <!-- Shaw Blvd Extension (lower route) -->
+      <trkpt lat="14.5205" lon="121.0450"/>
+      <trkpt lat="14.5220" lon="121.0400"/>
+      <trkpt lat="14.5235" lon="121.0350"/>
+
+      <!-- Turn to Pioneer -->
+      <trkpt lat="14.5250" lon="121.0300"/>
+      <trkpt lat="14.5265" lon="121.0280"/>
+
+      <!-- Destination: Cybergate -->
+      <trkpt lat="14.5280" lon="121.0255">
+        <name>Robinsons Cybergate</name>
+      </trkpt>
+
+    </trkseg>
+  </trk>
+</gpx>

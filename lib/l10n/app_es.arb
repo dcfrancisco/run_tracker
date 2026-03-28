@@ -1,0 +1,15 @@
+{
+  "@@locale": "es",
+  "appTitle": "Demostración de Seguimiento",
+  "runTrackerTitle": "Seguimiento de Carrera",
+  "distance": "Distancia",
+  "time": "Tiempo",
+  "pace": "Ritmo",
+  "speed": "Velocidad",
+  "calories": "Calorías",
+  "steps": "Pasos",
+  "elevation": "Elevación",
+  "kmPerHour": "km/h",
+  "minPerKm": "min/km",
+  "kcal": "kcal"
+}

@@ -1,45 +1,128 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:run_tracker/l10n/app_localizations.dart';
+
+import '../services/run_tracker_service.dart';
 
 /// Bottom sheet containing run details and stats.
-class RunDetailsSheet extends StatelessWidget {
-  const RunDetailsSheet({super.key});
+class RunDetailsSheet extends StatefulWidget {
+  final DraggableScrollableController? controller;
+  final RunTrackerService? runTracker;
+
+  const RunDetailsSheet({super.key, this.controller, this.runTracker});
+
+  @override
+  State<RunDetailsSheet> createState() => _RunDetailsSheetState();
+}
+
+class _RunDetailsSheetState extends State<RunDetailsSheet> {
+  late final DraggableScrollableController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = widget.controller ?? DraggableScrollableController();
+    // Auto-collapse when a run starts
+    widget.runTracker?.state.addListener(_onRunStateChanged);
+    // Add controller listener for snapping
+    _controller.addListener(_onSheetSizeChanged);
+  }
+
+  @override
+  void dispose() {
+    widget.runTracker?.state.removeListener(_onRunStateChanged);
+    _controller.removeListener(_onSheetSizeChanged);
+    _snapTimer?.cancel();
+    super.dispose();
+  }
+
+  void _onRunStateChanged() {
+    final state = widget.runTracker?.state.value;
+    if (state == RunState.running) {
+      // collapse to initial size
+      _controller.animateTo(
+        0.14,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
+  }
+
+  Timer? _snapTimer;
+  void _onSheetSizeChanged() {
+    _snapTimer?.cancel();
+    _snapTimer = Timer(const Duration(milliseconds: 200), () {
+      final size = _controller.size;
+      final mid = (0.14 + 0.45) / 2;
+      if (size >= mid) {
+        _controller.animateTo(
+          0.45,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOut,
+        );
+      } else {
+        _controller.animateTo(
+          0.14,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        // Drag handle
-        Center(
-          child: Container(
-            width: 45,
-            height: 5,
-            margin: const EdgeInsets.only(bottom: 16),
-            decoration: BoxDecoration(
-              color: colorScheme.onSurface.withOpacity(0.25),
-              borderRadius: BorderRadius.circular(10),
+    return DraggableScrollableSheet(
+      controller: _controller,
+      initialChildSize: 0.14,
+      minChildSize: 0.14,
+      maxChildSize: 0.45,
+      builder: (context, scrollController) {
+        return Container(
+          margin: const EdgeInsets.only(bottom: 110),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: colorScheme.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 8),
+            ],
+          ),
+          child: SingleChildScrollView(
+            controller: scrollController,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Drag handle
+                Center(
+                  child: Container(
+                    width: 45,
+                    height: 5,
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: colorScheme.onSurface.withOpacity(0.25),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
+
+                // Summary stats row (live values)
+                _LiveSummary(runTracker: widget.runTracker),
+                const SizedBox(height: 24),
+
+                // Details list
+                _RunDetailsList(runTracker: widget.runTracker),
+
+                const SizedBox(height: 16),
+              ],
             ),
           ),
-        ),
-
-        // Summary stats row
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: const [
-            _SummaryStatTile(label: 'Distance', value: '0.0 km'),
-            _SummaryStatTile(label: 'Time', value: '00:00:00'),
-            _SummaryStatTile(label: 'Pace', value: '0:00 /km'),
-          ],
-        ),
-        const SizedBox(height: 24),
-
-        // Details list
-        const _RunDetailsList(),
-
-        const SizedBox(height: 16),
-      ],
+        );
+      },
     );
   }
 }
@@ -74,16 +157,54 @@ class _SummaryStatTile extends StatelessWidget {
 }
 
 /// Details list showing extended run metrics.
-class _RunDetailsList extends StatelessWidget {
-  const _RunDetailsList();
+class _RunDetailsList extends StatefulWidget {
+  final RunTrackerService? runTracker;
+  const _RunDetailsList({this.runTracker});
+
+  @override
+  State<_RunDetailsList> createState() => _RunDetailsListState();
+}
+
+class _RunDetailsListState extends State<_RunDetailsList> {
+  void _onDataChanged() => setState(() {});
+
+  @override
+  void initState() {
+    super.initState();
+    widget.runTracker?.routePoints.addListener(_onDataChanged);
+    widget.runTracker?.state.addListener(_onDataChanged);
+    widget.runTracker?.stepCounter?.stepCount.addListener(_onDataChanged);
+  }
+
+  @override
+  void dispose() {
+    widget.runTracker?.routePoints.removeListener(_onDataChanged);
+    widget.runTracker?.state.removeListener(_onDataChanged);
+    widget.runTracker?.stepCounter?.stepCount.removeListener(_onDataChanged);
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    const items = [
-      _DetailRow(title: 'Speed', value: '0.0 km/h'),
-      _DetailRow(title: 'Elevation', value: '0 m'),
-      _DetailRow(title: 'Calories', value: '0 kcal'),
-      _DetailRow(title: 'Steps', value: '0'),
+    final rt = widget.runTracker;
+    final locale = Localizations.localeOf(context).toString();
+    final nf = NumberFormat.decimalPattern(locale);
+
+    final speed = rt?.currentSpeedKmh ?? 0.0;
+    final calories = rt?.currentCalories ?? 0.0;
+    final steps = rt?.stepCounter?.stepCount.value ?? 0;
+    final loc = AppLocalizations.of(context);
+
+    final items = [
+      _DetailRow(
+        title: loc?.speed ?? 'Speed',
+        value: '${nf.format(speed)} ${loc?.kmPerHour ?? 'km/h'}',
+      ),
+      _DetailRow(
+        title: loc?.calories ?? 'Calories',
+        value: '${nf.format(calories)} ${loc?.kcal ?? 'kcal'}',
+      ),
+      _DetailRow(title: loc?.steps ?? 'Steps', value: nf.format(steps)),
     ];
 
     return Column(
@@ -127,6 +248,89 @@ class _DetailRow extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _LiveSummary extends StatefulWidget {
+  final RunTrackerService? runTracker;
+  const _LiveSummary({this.runTracker});
+
+  @override
+  State<_LiveSummary> createState() => _LiveSummaryState();
+}
+
+class _LiveSummaryState extends State<_LiveSummary> {
+  Timer? _ticker;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.runTracker?.routePoints.addListener(_onDataChanged);
+    widget.runTracker?.state.addListener(_onDataChanged);
+    widget.runTracker?.stepCounter?.stepCount.addListener(_onDataChanged);
+    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  void _onDataChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    widget.runTracker?.routePoints.removeListener(_onDataChanged);
+    widget.runTracker?.state.removeListener(_onDataChanged);
+    widget.runTracker?.stepCounter?.stepCount.removeListener(_onDataChanged);
+    _ticker?.cancel();
+    super.dispose();
+  }
+
+  String _formatDuration(Duration d) {
+    final h = d.inHours.toString().padLeft(2, '0');
+    final m = (d.inMinutes % 60).toString().padLeft(2, '0');
+    final s = (d.inSeconds % 60).toString().padLeft(2, '0');
+    return '$h:$m:$s';
+  }
+
+  String _formatPace(double minPerKm) {
+    if (minPerKm <= 0 || minPerKm.isNaN || minPerKm.isInfinite) return '—';
+    final totalSeconds = (minPerKm * 60).round();
+    final minutes = (totalSeconds ~/ 60).toString().padLeft(2, '0');
+    final seconds = (totalSeconds % 60).toString().padLeft(2, '0');
+    return '$minutes:$seconds';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final rt = widget.runTracker;
+    final distance = rt?.currentDistanceKm ?? 0.0;
+    final duration = rt?.getActiveDuration() ?? Duration.zero;
+    final pace = rt?.currentPaceMinPerKm ?? 0.0;
+    final locale = Localizations.localeOf(context).toString();
+    final nf = NumberFormat.decimalPattern(locale);
+
+    final loc = AppLocalizations.of(context);
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceAround,
+      children: [
+        _SummaryStatTile(
+          label: loc?.distance ?? 'Distance',
+          value: '${nf.format(distance)} ${loc?.kmPerHour == null ? 'km' : ''}',
+        ),
+        _SummaryStatTile(
+          label: loc?.time ?? 'Time',
+          value: _formatDuration(duration),
+        ),
+        _SummaryStatTile(
+          label: loc?.pace ?? 'Pace',
+          value: pace > 0
+              ? '${_formatPace(pace)} ${loc?.minPerKm ?? 'min/km'}'
+              : '—',
+        ),
+      ],
     );
   }
 }
