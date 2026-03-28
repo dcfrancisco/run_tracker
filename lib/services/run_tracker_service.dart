@@ -19,12 +19,27 @@ class RunTrackerService {
   final StepCounterService? stepCounter;
   final double weightKg;
 
+  // Backwards-compatible stream controllers used by older tests/consumers.
+  final StreamController<RunState> _stateController =
+      StreamController<RunState>.broadcast();
+  final StreamController<List<LatLng>> _routeController =
+      StreamController<List<LatLng>>.broadcast();
+
   RunTrackerService({
-    required this.locationService,
+    LocationService? locationService,
     this.persistence,
     this.stepCounter,
     this.weightKg = 70.0,
-  });
+  }) : locationService = locationService ?? LocationService() {
+    // Forward ValueNotifier changes to legacy streams
+    state.addListener(() {
+      if (!_stateController.isClosed) _stateController.add(state.value);
+    });
+    routePoints.addListener(() {
+      if (!_routeController.isClosed)
+        _routeController.add(List<LatLng>.from(routePoints.value));
+    });
+  }
 
   final ValueNotifier<RunState> state = ValueNotifier(RunState.idle);
   final ValueNotifier<List<LatLng>> routePoints = ValueNotifier<List<LatLng>>(
@@ -38,15 +53,13 @@ class RunTrackerService {
   Duration _accumPaused = Duration.zero;
   DateTime? _pauseStart;
 
-  void dispose() {
-    _locSub?.cancel();
+  Future<void> dispose() async {
+    await _locSub?.cancel();
     state.dispose();
     routePoints.dispose();
     lastRun.dispose();
-    // start step monitoring if available
-    try {
-      stepCounter?.start();
-    } catch (_) {}
+    await _stateController.close();
+    await _routeController.close();
   }
 
   Future<void> startRun() async {
@@ -68,6 +81,11 @@ class RunTrackerService {
       final copy = List<LatLng>.from(routePoints.value)..add(pos);
       routePoints.value = copy;
     });
+
+    // emit initial values for legacy listeners
+    if (!_stateController.isClosed) _stateController.add(state.value);
+    if (!_routeController.isClosed)
+      _routeController.add(List<LatLng>.from(routePoints.value));
   }
 
   Future<void> pauseRun() async {
@@ -76,6 +94,7 @@ class RunTrackerService {
     state.value = RunState.paused;
     await _locSub?.cancel();
     _locSub = null;
+    if (!_stateController.isClosed) _stateController.add(state.value);
   }
 
   Future<void> resumeRun() async {
@@ -93,6 +112,7 @@ class RunTrackerService {
       final copy = List<LatLng>.from(routePoints.value)..add(pos);
       routePoints.value = copy;
     });
+    if (!_stateController.isClosed) _stateController.add(state.value);
   }
 
   Future<void> stopRun() async {
@@ -131,7 +151,10 @@ class RunTrackerService {
       await persistence?.saveRun(record);
     } catch (_) {}
 
-    // keep routePoints intact for UI
+    // emit final state for legacy listeners
+    if (!_stateController.isClosed) _stateController.add(state.value);
+    if (!_routeController.isClosed)
+      _routeController.add(List<LatLng>.from(routePoints.value));
   }
 
   Duration _computeActiveDuration() {
@@ -162,4 +185,43 @@ class RunTrackerService {
 
   /// Current step count (if stepCounter provided).
   int get currentSteps => stepCounter?.stepCount.value ?? 0;
+
+  // --- Backwards-compatible API (legacy tests / consumers) ---
+
+  Stream<RunState> get stateStream => _stateController.stream;
+
+  Stream<List<LatLng>> get routeStream => _routeController.stream;
+
+  DateTime? get startTime => _startTime;
+
+  DateTime? get endTime => _endTime;
+
+  Duration get elapsedTime => getActiveDuration();
+
+  bool get isRunning => state.value == RunState.running;
+  bool get isPaused => state.value == RunState.paused;
+  bool get isIdle => state.value == RunState.idle;
+  bool get isFinished => state.value == RunState.finished;
+
+  /// Add a GPS point manually (legacy helper used by older tests).
+  void addRoutePoint(LatLng p) {
+    if (state.value != RunState.running) return;
+    final copy = List<LatLng>.from(routePoints.value)..add(p);
+    routePoints.value = copy;
+    if (!_routeController.isClosed)
+      _routeController.add(List<LatLng>.from(routePoints.value));
+  }
+
+  /// Reset internal state back to idle. Kept for compatibility with older tests.
+  void reset() {
+    routePoints.value = [];
+    _startTime = null;
+    _endTime = null;
+    _accumPaused = Duration.zero;
+    _pauseStart = null;
+    state.value = RunState.idle;
+    if (!_stateController.isClosed) _stateController.add(state.value);
+    if (!_routeController.isClosed)
+      _routeController.add(List<LatLng>.from(routePoints.value));
+  }
 }

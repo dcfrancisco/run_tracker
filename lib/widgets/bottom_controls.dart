@@ -4,8 +4,13 @@ import '../services/run_tracker_service.dart';
 /// Fixed bottom controls bar anchored at the bottom of the screen.
 class BottomControls extends StatelessWidget {
   final RunTrackerService runTracker;
+  final VoidCallback? onSheetCollapse;
 
-  const BottomControls({super.key, required this.runTracker});
+  const BottomControls({
+    super.key,
+    required this.runTracker,
+    this.onSheetCollapse,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +32,7 @@ class BottomControls extends StatelessWidget {
             width: 64,
             child: IconButton(
               onPressed: () {},
-              icon: Icon(Icons.directions_run, color: colorScheme.primary),
+              icon: Icon(Icons.directions_bike, color: colorScheme.primary),
             ),
           ),
 
@@ -38,13 +43,14 @@ class BottomControls extends StatelessWidget {
                 valueListenable: runTracker.state,
                 builder: (context, state, _) {
                   final isRunning = state == RunState.running;
-                  return FloatingActionButton.small(
+                  return FloatingActionButton(
                     heroTag: 'start_pause',
-                    backgroundColor: Colors.deepOrange,
+                    backgroundColor: _getButtonColor(state),
                     onPressed: () async {
                       if (state == RunState.idle ||
                           state == RunState.finished) {
                         await runTracker.startRun();
+                        onSheetCollapse?.call();
                       } else if (state == RunState.running) {
                         await runTracker.pauseRun();
                       } else if (state == RunState.paused) {
@@ -54,7 +60,7 @@ class BottomControls extends StatelessWidget {
                     child: Icon(
                       isRunning ? Icons.pause : Icons.play_arrow,
                       color: Colors.white,
-                      size: 20,
+                      size: 32,
                     ),
                   );
                 },
@@ -73,5 +79,17 @@ class BottomControls extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Color _getButtonColor(RunState state) {
+    switch (state) {
+      case RunState.running:
+        return Colors.red;
+      case RunState.idle:
+      case RunState.paused:
+      case RunState.finished:
+      default:
+        return Colors.orange;
+    }
   }
 }
