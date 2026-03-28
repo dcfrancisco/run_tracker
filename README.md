@@ -119,7 +119,7 @@ dart format lib
 
 ## 🗺️ Roadmap
 
-See [ROADMAP.md](ROADMAP.md) for detailed phases and features.
+See [ROADMAP.md](docs/ROADMAP.md) for detailed phases and features.
 
 ## 📄 License
 
