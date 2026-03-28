@@ -7,8 +7,8 @@
 - [x] Draggable stats sheet (DraggableScrollableSheet)
 - [x] Fixed bottom controls (Strava-style)
 - [x] Start/Pause/Resume/Stop run lifecycle
- - [ ] Map matching (snap-to-road)
- - [ ] Polyline route drawing
+- [ ] Map matching (snap-to-road)
+- [ ] Polyline route drawing
 - [ ] Step counter (pedometer)
 - [ ] Speed, pace, distance, calories metrics
 - [ ] Run history (Hive default, Firebase optional)
